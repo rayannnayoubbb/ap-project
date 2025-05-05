@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>Picsart_25-04-28_01-41-26-837.png</file>
+        <file>Picsart_25-04-29_08-39-34-769.png</file>
+        <file>Picsart_25-04-29_09-07-05-740.png</file>
+        <file>Picsart_25-04-29_09-09-25-428.png</file>
+        <file>New folder/grid1.txt</file>
+        <file>New folder/grid2.txt</file>
+        <file>New folder/grid3.txt</file>
+        <file>New folder/grid4.txt</file>
+        <file>New folder/grid5.txt</file>
+        <file>New folder/grid6.txt</file>
+        <file>New folder/grid7.txt</file>
+        <file>New folder/grid8.txt</file>
+    </qresource>
+    <qresource prefix="/grids"/>
+</RCC>
