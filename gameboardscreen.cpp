@@ -133,42 +133,88 @@ void GameBoardScreen::updateAgentCardsPosition()
         }
     }
 }
-
 void GameBoardScreen::initializeBoard()
 {
     m_board.clear();
-    m_board.resize(10);
+    // 9 columns with alternating 5/4 rows
+    const int numColumns = 9;
+    m_board.resize(numColumns);
 
-    for (int row = 0; row < 10; ++row) {
-        int cols = (row % 2) ? 9 : 10;
-        m_board[row].resize(cols);
+    for (int col = 0; col < numColumns; ++col) {
+        int rows = (col % 2) ? 4 : 5; // Alternating 5 and 4 rows
+        m_board[col].resize(rows);
 
-        for (int col = 0; col < cols; ++col) {
-            m_board[row][col].row = row;
-            m_board[row][col].col = col;
-            m_board[row][col].type = NORMAL;
+        for (int row = 0; row < rows; ++row) {
+            m_board[col][row].col = col;
+            m_board[col][row].row = row;
+            m_board[col][row].type = NORMAL;
         }
     }
 }
 
-QPoint GameBoardScreen::hexagonCenter(int row, int col) const
+QPoint GameBoardScreen::hexagonCenter(int col, int row) const
 {
-    const int hexSize = 20;
+    const int hexSize = 30;
     const int hexWidth = hexSize * 2;
     const int hexHeight = static_cast<int>(hexSize * sqrt(3));
 
+    // Center the grid in the 800x450 window
+    int x = 400 + (col - 4) * hexWidth * 0.75;
+    int y = 225;
 
-    int x = 150 + col * hexWidth * 0.75;
-
-
-    if (row % 2 == 1) {
-        x += hexWidth * 0.375;
+    if (col % 2 == 0) {
+        // Even columns (5 cells)
+        y += (row - 2) * hexHeight;
+    } else {
+        // Odd columns (4 cells)
+        y += (row - 1.5) * hexHeight;
     }
 
-
-    int y = 50 + row * hexHeight * 0.85;
-
     return QPoint(x, y);
+}
+
+void GameBoardScreen::drawBoard(QPainter &painter)
+{
+    QFont font = painter.font();
+    font.setBold(true);
+    font.setPointSize(10);
+    painter.setFont(font);
+
+    // Draw columns first
+    for (int col = 0; col < m_board.size(); ++col) {
+        // Then draw rows in each column
+        for (int row = 0; row < m_board[col].size(); ++row) {
+            const GameCell &cell = m_board[col][row];
+            QPoint center = hexagonCenter(col, row);
+
+            QBrush brush;
+            switch (cell.type) {
+            case PLAYER1_SPAWN: brush = QColor(255, 200, 200); break;
+            case PLAYER2_SPAWN: brush = QColor(200, 200, 255); break;
+            case WATER: brush = QColor(100, 200, 255); break;
+            case ROCK: brush = Qt::gray; break;
+            default: brush = Qt::white;
+            }
+
+            if (m_draggingAgent && isValidMove(m_draggingAgent, col, row)) {
+                brush.setColor(brush.color().lighter(120));
+            }
+
+            drawHexagon(painter, center, 30, brush);
+
+            QString text;
+            switch (cell.type) {
+            case PLAYER1_SPAWN: text = "1"; break;
+            case PLAYER2_SPAWN: text = "2"; break;
+            case WATER: text = "~"; break;
+            case ROCK: text = "#"; break;
+            default: text = "";
+            }
+
+            painter.drawText(QRect(center.x()-15, center.y()-15, 30, 30),
+                             Qt::AlignCenter, text);
+        }
+    }
 }
 
 void GameBoardScreen::drawHexagon(QPainter &painter, const QPoint &center, int size, const QBrush &brush)
@@ -184,49 +230,6 @@ void GameBoardScreen::drawHexagon(QPainter &painter, const QPoint &center, int s
     painter.setBrush(brush);
     painter.setPen(Qt::black);
     painter.drawPolygon(hexagon);
-}
-
-void GameBoardScreen::drawBoard(QPainter &painter)
-{
-    QFont font = painter.font();
-    font.setBold(true);
-    font.setPointSize(8);
-    painter.setFont(font);
-
-    for (int row = 0; row < m_board.size(); ++row) {
-        for (int col = 0; col < m_board[row].size(); ++col) {
-            const GameCell &cell = m_board[row][col];
-            QPoint center = hexagonCenter(row, col);
-
-            QBrush brush;
-            switch (cell.type) {
-            case PLAYER1_SPAWN: brush = QColor(255, 200, 200); break;
-            case PLAYER2_SPAWN: brush = QColor(200, 200, 255); break;
-            case WATER: brush = QColor(100, 200, 255); break;
-            case ROCK: brush = Qt::gray; break;
-            default: brush = Qt::white;
-            }
-
-            if (m_draggingAgent && isValidMove(m_draggingAgent, row, col)) {
-                brush.setColor(brush.color().lighter(120));
-            }
-
-            const int hexSize = 20;
-            drawHexagon(painter, center, hexSize, brush);
-
-            QString text;
-            switch (cell.type) {
-            case PLAYER1_SPAWN: text = "1"; break;
-            case PLAYER2_SPAWN: text = "2"; break;
-            case WATER: text = "~"; break;
-            case ROCK: text = "#"; break;
-            default: text = "";
-            }
-
-            painter.setPen(Qt::black);
-            painter.drawText(QRect(center.x() - 10, center.y() - 10, 20, 20), Qt::AlignCenter, text);
-        }
-    }
 }
 
 void GameBoardScreen::drawSidePanels(QPainter &painter)
@@ -332,62 +335,100 @@ bool GameBoardScreen::loadBoardFromFile(const QString &filename)
         return false;
     }
 
+    
+    m_board.clear();
+    m_board.resize(9);
+    for (int col = 0; col < 9; col++) {
+        m_board[col].resize((col % 2) ? 4 : 5);
+        for (int row = 0; row < m_board[col].size(); row++) {
+            m_board[col][row] = {col, row, NORMAL};
+        }
+    }
+
     QTextStream in(&file);
     QStringList lines;
     while (!in.atEnd()) {
-        QString line = in.readLine();
-        if (!line.trimmed().isEmpty()) {
-            lines.append(line);
-        }
+        lines.append(in.readLine());
     }
     file.close();
 
+   
+    QMap<int, int> rightmost2Positions = {
+        {1, 26}, 
+        {2, 22}, 
+        {3, 26}, 
+        {5, 26},  
+        {7, 26}, 
+        {9, 26}  
+    };
 
-    m_board.clear();
-    m_board.resize(10);
+    for (int lineNum = 0; lineNum < lines.size(); lineNum++) {
+        QString line = lines[lineNum];
+        int cellsFound = 0;
 
-
-    for (int row = 0; row < lines.size() && row < 10; row++) {
-        QString line = lines[row];
-        int cols = (row % 2) ? 9 : 10;
-        m_board[row].resize(cols);
-
-        int gridCol = 0;
-        for (int i = 0; i < line.length() && gridCol < cols; i++) {
-            QChar c = line[i];
-
-
-            if (c == ' ' || c == '_') continue;
-
-
-            if (c == '/' || c == '\\' || c == '~' || c == '#' || c == '1' || c == '2') {
-                m_board[row][gridCol].row = row;
-                m_board[row][gridCol].col = gridCol;
-
-                switch (c.unicode()) {
-                case '1':
-                    m_board[row][gridCol].type = PLAYER1_SPAWN;
-                    break;
-                case '2':
-                    m_board[row][gridCol].type = PLAYER2_SPAWN;
-                    break;
-                case '~':
-                    m_board[row][gridCol].type = WATER;
-                    break;
-                case '#':
-                    m_board[row][gridCol].type = ROCK;
-                    break;
-                default:
-                    m_board[row][gridCol].type = NORMAL;
+        
+        if (rightmost2Positions.contains(lineNum)) {
+            int pos = rightmost2Positions[lineNum];
+            if (pos < line.length() && line[pos] == '2') {
+                int col = (lineNum % 2 == 1) ? 8 : 7; 
+                int row = (lineNum <= 2) ? 0 :
+                              (lineNum <= 4) ? 1 :
+                              (lineNum <= 6) ? 2 :
+                              (lineNum <= 8) ? 3 : 4;
+                if (col < 9 && row < m_board[col].size()) {
+                    m_board[col][row].type = PLAYER2_SPAWN;
                 }
-
-                gridCol++;
             }
+        }
+
+        
+        for (int charPos = 0; charPos < line.length() && cellsFound < 6; charPos++) {
+            QChar c = line[charPos];
+            if (c == ' ' || c == '_' || c == '/' || c == '\\') continue;
+
+            
+            if (rightmost2Positions.contains(lineNum) &&
+                charPos == rightmost2Positions[lineNum]) {
+                cellsFound++;
+                continue;
+            }
+
+            
+            int col, row;
+            if (lineNum % 2 == 1) { // Odd lines (1,3,5,7,9)
+                col = cellsFound * 2;
+                row = (lineNum - 1) / 2;
+            } else { // Even lines (2,4,6,8,10)
+                col = (cellsFound * 2) + 1;
+                row = (lineNum / 2) - 1;
+            }
+
+            if (col < 9 && row >= 0 && row < m_board[col].size()) {
+                switch (c.unicode()) {
+                case '1': m_board[col][row].type = PLAYER1_SPAWN; break;
+                case '2': m_board[col][row].type = PLAYER2_SPAWN; break;
+                case '~': m_board[col][row].type = WATER; break;
+                case '#': m_board[col][row].type = ROCK; break;
+                default: m_board[col][row].type = NORMAL;
+                }
+            }
+            cellsFound++;
         }
     }
 
     update();
     return true;
+}
+
+GameBoardScreen::CellType GameBoardScreen::charToCellType(QChar c)
+{
+    switch (c.unicode()) {
+    case '1': return PLAYER1_SPAWN;
+    case '2': return PLAYER2_SPAWN;
+    case '~': return WATER;
+    case '#': return ROCK;
+    default: return NORMAL;
+    }
 }
 
 GameBoardScreen::GameCell* GameBoardScreen::getCellAtPosition(const QPoint &pos)
