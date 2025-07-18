@@ -12,7 +12,7 @@
 #include <cmath>
 
 GameBoardScreen::GameBoardScreen(const QString &player1Name, const QString &player2Name, QWidget *parent)
-    : QWidget(parent), m_player1Name(player1Name), m_player2Name(player2Name), m_currentPlayer(PLAYER1)
+    : QWidget(parent), m_player1Name(player1Name), m_player2Name(player2Name), m_currentPlayer(PLAYER1) //cst ref la playername
 {
     setFixedSize(800, 450);
     setMouseTracking(true);
@@ -83,12 +83,12 @@ void GameBoardScreen::initializeAgents()
     agentB.card = createAgentCard(agentB);
 
     m_agents.append(agentA);
-    m_agents.append(agentB);
+    m_agents.append(agentB);   //hydol lists
 
-    updateAgentCardsPosition();
+    updateAgentCardsPosition(); // updates their pos on screen
 }
 
-QLabel* GameBoardScreen::createAgentCard(const Agent& agent)
+QLabel* GameBoardScreen::createAgentCard(const Agent& agent) //pointer to label
 {
     QLabel* card = new QLabel(this);
     card->setAlignment(Qt::AlignCenter);
@@ -326,16 +326,14 @@ bool GameBoardScreen::isValidMove(const Agent *agent, int toRow, int toCol) cons
 
     return (rowDiff <= 1 && colDiff <= 1);
 }
-
-bool GameBoardScreen::loadBoardFromFile(const QString &filename)
-{
+bool GameBoardScreen::loadBoardFromFile(const QString &filename) {
     QFile file(filename);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qWarning() << "Failed to open arena file:" << filename;
         return false;
     }
 
-    
+    // Initialize empty board (9 columns, alternating 5/4 rows)
     m_board.clear();
     m_board.resize(9);
     for (int col = 0; col < 9; col++) {
@@ -348,78 +346,61 @@ bool GameBoardScreen::loadBoardFromFile(const QString &filename)
     QTextStream in(&file);
     QStringList lines;
     while (!in.atEnd()) {
-        lines.append(in.readLine());
+        QString line = in.readLine();
+        if (!line.trimmed().isEmpty()) {
+            lines.append(line);
+        }
     }
     file.close();
 
-   
-    QMap<int, int> rightmost2Positions = {
-        {1, 26}, 
-        {2, 22}, 
-        {3, 26}, 
-        {5, 26},  
-        {7, 26}, 
-        {9, 26}  
-    };
-
+    // Process all lines with consistent hex grid mapping
     for (int lineNum = 0; lineNum < lines.size(); lineNum++) {
         QString line = lines[lineNum];
-        int cellsFound = 0;
 
-        
-        if (rightmost2Positions.contains(lineNum)) {
-            int pos = rightmost2Positions[lineNum];
-            if (pos < line.length() && line[pos] == '2') {
-                int col = (lineNum % 2 == 1) ? 8 : 7; 
-                int row = (lineNum <= 2) ? 0 :
-                              (lineNum <= 4) ? 1 :
-                              (lineNum <= 6) ? 2 :
-                              (lineNum <= 8) ? 3 : 4;
-                if (col < 9 && row < m_board[col].size()) {
-                    m_board[col][row].type = PLAYER2_SPAWN;
-                }
-            }
-        }
-
-        
-        for (int charPos = 0; charPos < line.length() && cellsFound < 6; charPos++) {
+        for (int charPos = 0; charPos < line.length(); charPos++) {
             QChar c = line[charPos];
+
+            // Skip decorative characters
             if (c == ' ' || c == '_' || c == '/' || c == '\\') continue;
 
-            
-            if (rightmost2Positions.contains(lineNum) &&
-                charPos == rightmost2Positions[lineNum]) {
-                cellsFound++;
-                continue;
-            }
-
-            
+            // Calculate grid coordinates - NEW HEX GRID MAPPING
             int col, row;
             if (lineNum % 2 == 1) { // Odd lines (1,3,5,7,9)
-                col = cellsFound * 2;
+                col = (charPos - 1) / 3; // 3 chars per hex cell
                 row = (lineNum - 1) / 2;
             } else { // Even lines (2,4,6,8,10)
-                col = (cellsFound * 2) + 1;
+                col = (charPos - 1) / 3;
                 row = (lineNum / 2) - 1;
             }
 
-            if (col < 9 && row >= 0 && row < m_board[col].size()) {
-                switch (c.unicode()) {
-                case '1': m_board[col][row].type = PLAYER1_SPAWN; break;
-                case '2': m_board[col][row].type = PLAYER2_SPAWN; break;
-                case '~': m_board[col][row].type = WATER; break;
-                case '#': m_board[col][row].type = ROCK; break;
-                default: m_board[col][row].type = NORMAL;
-                }
+            // Boundary check
+            if (col < 0 || col >= 9 || row < 0 || row >= m_board[col].size()) {
+                continue;
             }
-            cellsFound++;
+
+            // Set cell type - ALL characters processed the same way
+            switch (c.unicode()) {
+            case '1':
+                m_board[col][row].type = PLAYER1_SPAWN;
+                break;
+            case '2':
+                m_board[col][row].type = PLAYER2_SPAWN;
+                break;
+            case '~':
+                m_board[col][row].type = WATER;
+                break;
+            case '#':
+                m_board[col][row].type = ROCK;
+                break;
+            default:
+                break;
+            }
         }
     }
 
     update();
     return true;
 }
-
 GameBoardScreen::CellType GameBoardScreen::charToCellType(QChar c)
 {
     switch (c.unicode()) {
@@ -493,7 +474,7 @@ void GameBoardScreen::paintEvent(QPaintEvent *event)
     }
 }
 
-bool GameBoardScreen::eventFilter(QObject *obj, QEvent *event)
+bool GameBoardScreen::eventFilter(QObject *obj, QEvent *event)  //allows widget to respond to clicks or hover
 {
     return QWidget::eventFilter(obj, event);
 }
