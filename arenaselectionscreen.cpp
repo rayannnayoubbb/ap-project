@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QSignalMapper>
+#include <QPixmap>
 
 ArenaSelectionScreen::ArenaSelectionScreen(const QString& player1, const QString& player2, QWidget *parent)
     : QWidget(parent), m_player1Name(player1), m_player2Name(player2)
@@ -16,34 +17,38 @@ void ArenaSelectionScreen::setupUI()
 {
     setFixedSize(800, 450);
 
-
+    // Set background image
     QLabel *background = new QLabel(this);
     background->setGeometry(0, 0, 800, 450);
-    background->setStyleSheet("background-color: black;");
-
+    QPixmap bgImage(":/new/prefix1/Picsart_25-04-29_08-39-34-769.png");
+    if (!bgImage.isNull()) {
+        bgImage = bgImage.scaled(800, 450, Qt::KeepAspectRatioByExpanding);
+        background->setPixmap(bgImage);
+    } else {
+        qWarning() << "Failed to load background image";
+        background->setStyleSheet("background-color: black;");
+    }
 
     QWidget *container = new QWidget(this);
     container->setGeometry(0, 0, 800, 450);
-
+    container->setStyleSheet("background-color: rgba(0, 0, 0, 100);"); // Semi-transparent overlay
 
     QLabel *title = new QLabel("SELECT ARENA", container);
     title->setAlignment(Qt::AlignCenter);
     title->setStyleSheet("color: white; font-size: 28px; font-weight: bold;");
     title->setGeometry(0, 20, 800, 60);
 
-
     QLabel *playersLabel = new QLabel(QString("%1  vs  %2").arg(m_player1Name).arg(m_player2Name), container);
     playersLabel->setAlignment(Qt::AlignCenter);
     playersLabel->setStyleSheet("color: white; font-size: 20px;");
     playersLabel->setGeometry(0, 80, 800, 30);
 
-
     QWidget *buttonsContainer = new QWidget(container);
     buttonsContainer->setGeometry(150, 120, 500, 200);
+    buttonsContainer->setStyleSheet("background-color: transparent;");
     QGridLayout *gridLayout = new QGridLayout(buttonsContainer);
     gridLayout->setSpacing(10);
     gridLayout->setContentsMargins(0, 0, 0, 0);
-
 
     QSignalMapper *signalMapper = new QSignalMapper(this);
     for (int i = 0; i < 8; i++) {
@@ -70,7 +75,6 @@ void ArenaSelectionScreen::setupUI()
     }
 
     connect(signalMapper, SIGNAL(mappedInt(int)), this, SLOT(onArenaButtonClicked(int)));
-
 
     QPushButton *backButton = new QPushButton("BACK", container);
     backButton->setGeometry(350, 380, 100, 40);
@@ -99,6 +103,6 @@ void ArenaSelectionScreen::onArenaButtonClicked(int arenaNumber)
         emit arenaSelected(filename);
     } else {
         qWarning() << "Arena file not found:" << filename;
-
+        // You might want to show an error message to the user here
     }
 }
