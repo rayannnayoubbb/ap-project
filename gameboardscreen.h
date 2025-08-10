@@ -45,7 +45,7 @@ public:
 
     explicit GameBoardScreen(const QString &player1Name, const QString &player2Name, QWidget *parent = nullptr);
     bool loadBoardFromFile(const QString &filename);
-
+CellType charToCellType(QChar c);
 signals:
     void backToMenuRequested();
 
@@ -85,6 +85,8 @@ private:
     QPoint m_dragStartPosition;
     QPoint m_dragOffset;
     QPoint m_dragPosition;
+
+
 };
 
 #endif // GAMEBOARDSCREEN_H
