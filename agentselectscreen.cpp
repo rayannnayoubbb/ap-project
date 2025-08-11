@@ -27,42 +27,40 @@ AgentSelectScreen::AgentSelectScreen(const QString& player1Name, const QString& 
         qWarning() << "Failed to load background image";
     }
 
-    // Create all available agents
-    m_allAgents = {
+    // Create all available agents using factory method
+    QStringList agentNames = {
         // 🌊 WATER WALKING AGENTS
-        new Agent(Agent::WATER_WALKING, "Billy", ":/new/prefix1/agents/Billy.png", 320, 3, 90, 1),
-        new Agent(Agent::WATER_WALKING, "Reketon", ":/new/prefix1/agents/Reketon.png", 320, 2, 80, 2),
-        new Agent(Agent::WATER_WALKING, "Angus", ":/new/prefix1/agents/Angus.png", 400, 2, 100, 1),
-        new Agent(Agent::WATER_WALKING, "Duraham", ":/new/prefix1/agents/Duraham.png", 320, 2, 100, 2),
-        new Agent(Agent::WATER_WALKING, "Colonel Baba", ":/new/prefix1/agents/Colonel_Baba.png", 400, 2, 100, 1),
-        new Agent(Agent::WATER_WALKING, "Medusa", ":/new/prefix1/agents/Medusa.png", 320, 2, 90, 2),
-        new Agent(Agent::WATER_WALKING, "Bunka", ":/new/prefix1/agents/Bunka.png", 320, 3, 100, 1),
-        new Agent(Agent::WATER_WALKING, "Sanka", ":/new/prefix1/agents/Sanka.png", 320, 3, 100, 1),
+        "Billy", "Reketon", "Angus", "Duraham",
+        "Colonel Baba", "Medusa", "Bunka", "Sanka",
 
         // 🏔️ GROUNDED AGENTS
-        new Agent(Agent::GROUNDED, "Sir Lamorak", ":/new/prefix1/agents/Sir_Lamorak.png", 320, 3, 110, 1),
-        new Agent(Agent::GROUNDED, "Kabu", ":/new/prefix1/agents/Kabu.png", 400, 2, 120, 1),
-        new Agent(Agent::GROUNDED, "Rajakal", ":/new/prefix1/agents/Rajakal.png", 320, 2, 130, 1),
-        new Agent(Agent::GROUNDED, "Salih", ":/new/prefix1/agents/Salih.png", 400, 2, 80, 1),
-        new Agent(Agent::GROUNDED, "Khan", ":/new/prefix1/agents/Khan.png", 320, 2, 90, 1),
-        new Agent(Agent::GROUNDED, "Boi", ":/new/prefix1/agents/Boi.png", 400, 2, 100, 1),
-        new Agent(Agent::GROUNDED, "Eloi", ":/new/prefix1/agents/Eloi.png", 240, 2, 100, 2),
-        new Agent(Agent::GROUNDED, "Kanar", ":/new/prefix1/agents/Kanar.png", 160, 2, 100, 2),
-        new Agent(Agent::GROUNDED, "Elsa", ":/new/prefix1/agents/Elsa.png", 320, 2, 140, 2),
-        new Agent(Agent::GROUNDED, "Karissa", ":/new/prefix1/agents/Karissa.png", 280, 2, 80, 2),
-        new Agent(Agent::GROUNDED, "Sir Philip", ":/new/prefix1/agents/Sir_Philip.png", 400, 2, 100, 1),
-        new Agent(Agent::GROUNDED, "Frost", ":/new/prefix1/agents/Frost.png", 260, 2, 80, 2),
-        new Agent(Agent::GROUNDED, "Tusk", ":/new/prefix1/agents/Tusk.png", 400, 2, 100, 1),
+        "Sir Lamorak", "Kabu", "Rajakal", "Salih",
+        "Khan", "Boi", "Eloi", "Kanar",
+        "Elsa", "Karissa", "Sir Philip", "Frost", "Tusk",
 
         // 🦅 FLYING AGENTS
-        new Agent(Agent::FLYING, "Rambu", ":/new/prefix1/agents/Rambu.png", 320, 3, 120, 1),
+        "Rambu",
 
         // 👻 FLOATING AGENTS
-        new Agent(Agent::FLOATING, "Sabrina", ":/new/prefix1/agents/Sabrina.png", 320, 3, 100, 1),
-        new Agent(Agent::FLOATING, "Death", ":/new/prefix1/agents/Death.png", 240, 3, 120, 2)
+        "Sabrina", "Death"
     };
 
+    foreach (const QString& name, agentNames) {
+        Agent* agent = Agent::createAgent(name, Agent::PLAYER1);
+        if (agent) {
+            m_allAgents.append(agent);
+        } else {
+            qWarning() << "Failed to create agent:" << name;
+        }
+    }
+
     setupUI();
+}
+
+AgentSelectScreen::~AgentSelectScreen() {
+    qDeleteAll(m_allAgents);
+    qDeleteAll(m_player1Agents);
+    qDeleteAll(m_player2Agents);
 }
 
 void AgentSelectScreen::setupUI() {
@@ -210,11 +208,19 @@ void AgentSelectScreen::createAgentCards() {
         nameLabel->setStyleSheet("color: white; font-weight: bold; font-size: 14px;");
         buttonLayout->addWidget(nameLabel);
 
-        QLabel* typeLabel = new QLabel(
-            agent->getType() == Agent::WATER_WALKING ? "🌊 Water" :
-                agent->getType() == Agent::GROUNDED ? "🏔️ Ground" :
-                agent->getType() == Agent::FLYING ? "🦅 Flying" : "👻 Floating"
-            );
+        // Determine agent type using dynamic_cast
+        QString typeText;
+        if (dynamic_cast<WaterWalkingAgent*>(agent)) {
+            typeText = "🌊 Water";
+        } else if (dynamic_cast<GroundedAgent*>(agent)) {
+            typeText = "🏔️ Ground";
+        } else if (dynamic_cast<FlyingAgent*>(agent)) {
+            typeText = "🦅 Flying";
+        } else if (dynamic_cast<FloatingAgent*>(agent)) {
+            typeText = "👻 Floating";
+        }
+
+        QLabel* typeLabel = new QLabel(typeText);
         typeLabel->setAlignment(Qt::AlignCenter);
         typeLabel->setStyleSheet("color: white; font-size: 12px;");
         buttonLayout->addWidget(typeLabel);
@@ -308,7 +314,7 @@ void AgentSelectScreen::switchPlayer() {
     }
 
     // Disable already selected agents
-    QVector<Agent*> allSelected = m_player1Agents + m_player2Agents;
+    QList<Agent*> allSelected = m_player1Agents + m_player2Agents;
     for (int i = 0; i < m_allAgents.size(); ++i) {
         if (allSelected.contains(m_allAgents[i])) {
             m_agentButtonGroup->button(i)->setEnabled(false);
