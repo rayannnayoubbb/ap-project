@@ -18,25 +18,7 @@ GameBoardScreen::GameBoardScreen(const QString &player1Name, const QString &play
     setMouseTracking(true);
 
 
-    m_backButton = new QPushButton("Back to Menu", this);
-    m_backButton->setGeometry(10, 10, 120, 30);
-    m_backButton->setStyleSheet("background-color: rgba(255, 100, 255, 150);"
-                                "color: white; font-weight: bold;");
-    m_backButton->move((width() - m_backButton->width()) / 2, height() - m_backButton->height() - 10);
 
-    m_backButton->setStyleSheet(
-        "QPushButton {"
-        "   background-color: rgba(33, 178, 62, 1);"
-        "   border: 2px solid white;"
-        "   border-radius: 10px;"
-        "   font-size: 16px;"
-        "   font-weight: bold;"
-        "   color: white;"
-        "}"
-        "QPushButton:hover { background-color: rgba(179, 237, 190, 0.87); }"
-        );
-
-    connect(m_backButton, &QPushButton::clicked, this, &GameBoardScreen::backToMenuRequested);
 
 
     initializeAgents();
@@ -488,3 +470,4 @@ GameBoardScreen::Agent* GameBoardScreen::getAgentAtPosition(const QPoint &pos)
     }
     return nullptr;
 }
+
