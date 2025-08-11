@@ -2,6 +2,7 @@
 #define AGENTSELECTSCREEN_H
 
 #include <QWidget>
+#include <QList>
 #include <QGridLayout>
 #include <QPushButton>
 #include <QLabel>
@@ -11,12 +12,12 @@
 
 class AgentSelectScreen : public QWidget {
     Q_OBJECT
-
 public:
     explicit AgentSelectScreen(const QString& player1Name, const QString& player2Name, QWidget* parent = nullptr);
+    ~AgentSelectScreen();
 
-    QVector<Agent*> getPlayer1Agents() const { return m_player1Agents; }
-    QVector<Agent*> getPlayer2Agents() const { return m_player2Agents; }
+    QList<Agent*> getPlayer1Agents() const { return m_player1Agents; }
+    QList<Agent*> getPlayer2Agents() const { return m_player2Agents; }
 
 signals:
     void agentsSelected();
@@ -35,11 +36,11 @@ private:
 
     QString m_player1Name;
     QString m_player2Name;
-    QVector<Agent*> m_allAgents;
-    QVector<Agent*> m_player1Agents;
-    QVector<Agent*> m_player2Agents;
-    QVector<Agent*> m_currentPlayerSelection;
-    Agent::Player m_currentSelectingPlayer;  // Fixed here
+    QList<Agent*> m_allAgents;
+    QList<Agent*> m_player1Agents;
+    QList<Agent*> m_player2Agents;
+    QList<Agent*> m_currentPlayerSelection;
+    Agent::Player m_currentSelectingPlayer;  // Fully qualified type name
 
     // UI Elements
     QGridLayout* m_gridLayout;
