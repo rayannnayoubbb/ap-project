@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     QStackedWidget stack;
 
-    // Create screens
+ 
     SplashScreen *splash = new SplashScreen();
     MenuScreen *menu = new MenuScreen();
     GalleryScreen *gallery = new GalleryScreen();
@@ -69,8 +69,10 @@ int main(int argc, char *argv[])
             QObject::connect(arenaScreen, &ArenaSelectionScreen::arenaSelected, [&, p1, p2](const QString &filename){
                 if (gameBoard) gameBoard->deleteLater();
 
-                gameBoard = new GameBoardScreen(p1, p2);
-                // TODO: Set selected agents on gameBoard here
+                // Pass the selected agents to the game board
+                gameBoard = new GameBoardScreen(p1, p2,
+                                                agentScreen->getPlayer1Agents(),
+                                                agentScreen->getPlayer2Agents());
 
                 if (gameBoard->loadBoardFromFile(filename)) {
                     stack.addWidget(gameBoard);
@@ -114,7 +116,7 @@ int main(int argc, char *argv[])
         stack.setCurrentWidget(agentScreen);
     });
 
-    stack.setWindowTitle("Hexagon Game");
+    stack.setWindowTitle("Tactical Monsters");
     stack.setFixedSize(800, 450);
     stack.show();
 
