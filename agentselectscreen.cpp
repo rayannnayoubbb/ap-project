@@ -27,7 +27,7 @@ AgentSelectScreen::AgentSelectScreen(const QString& player1Name, const QString& 
         qWarning() << "Failed to load background image";
     }
 
-    // Create all available agents using factory method
+
     QStringList agentNames = {
         // 🌊 WATER WALKING AGENTS
         "Billy", "Reketon", "Angus", "Duraham",
@@ -48,6 +48,7 @@ AgentSelectScreen::AgentSelectScreen(const QString& player1Name, const QString& 
     foreach (const QString& name, agentNames) {
         Agent* agent = Agent::createAgent(name, Agent::PLAYER1);
         if (agent) {
+            agent->loadPixmap(); // Load the pixmap for the agent
             m_allAgents.append(agent);
         } else {
             qWarning() << "Failed to create agent:" << name;
@@ -58,13 +59,12 @@ AgentSelectScreen::AgentSelectScreen(const QString& player1Name, const QString& 
 }
 
 AgentSelectScreen::~AgentSelectScreen() {
+
     qDeleteAll(m_allAgents);
-    qDeleteAll(m_player1Agents);
-    qDeleteAll(m_player2Agents);
 }
 
 void AgentSelectScreen::setupUI() {
-    // Main container with semi-transparent background
+
     QWidget *container = new QWidget(this);
     container->setGeometry(0, 0, 800, 450);
     container->setStyleSheet("background-color: rgba(0, 0, 0, 100);");
@@ -101,7 +101,7 @@ void AgentSelectScreen::setupUI() {
     m_scrollArea->setWidget(scrollWidget);
     mainLayout->addWidget(m_scrollArea);
 
-    // Button area
+
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(20);
 
@@ -198,8 +198,9 @@ void AgentSelectScreen::createAgentCards() {
         buttonLayout->setSpacing(5);
         buttonLayout->setContentsMargins(5, 10, 5, 10);
 
+        // Use the loaded pixmap instead of loading from path again
         QLabel* imageLabel = new QLabel();
-        imageLabel->setPixmap(QPixmap(agent->getImagePath()).scaled(100, 100, Qt::KeepAspectRatio));
+        imageLabel->setPixmap(agent->getPixmap().scaled(100, 100, Qt::KeepAspectRatio));
         imageLabel->setAlignment(Qt::AlignCenter);
         buttonLayout->addWidget(imageLabel);
 
@@ -208,16 +209,14 @@ void AgentSelectScreen::createAgentCards() {
         nameLabel->setStyleSheet("color: white; font-weight: bold; font-size: 14px;");
         buttonLayout->addWidget(nameLabel);
 
-        // Determine agent type using dynamic_cast
+
         QString typeText;
-        if (dynamic_cast<WaterWalkingAgent*>(agent)) {
-            typeText = "🌊 Water";
-        } else if (dynamic_cast<GroundedAgent*>(agent)) {
-            typeText = "🏔️ Ground";
-        } else if (dynamic_cast<FlyingAgent*>(agent)) {
-            typeText = "🦅 Flying";
-        } else if (dynamic_cast<FloatingAgent*>(agent)) {
-            typeText = "👻 Floating";
+        switch (agent->getType()) {
+        case Agent::WATER_WALKING: typeText = "🌊 Water"; break;
+        case Agent::GROUNDED: typeText = "🏔️ Ground"; break;
+        case Agent::FLYING: typeText = "🦅 Flying"; break;
+        case Agent::FLOATING: typeText = "👻 Floating"; break;
+        default: typeText = "Unknown";
         }
 
         QLabel* typeLabel = new QLabel(typeText);
@@ -251,6 +250,8 @@ void AgentSelectScreen::createAgentCards() {
 }
 
 void AgentSelectScreen::handleAgentSelection(int id) {
+    if (id < 0 || id >= m_allAgents.size()) return;
+
     Agent* selectedAgent = m_allAgents[id];
 
     if (m_currentPlayerSelection.contains(selectedAgent)) {
@@ -274,16 +275,22 @@ void AgentSelectScreen::updateSelectionDisplay() {
 
 void AgentSelectScreen::confirmSelection() {
     if (m_currentSelectingPlayer == Agent::PLAYER1) {
-        m_player1Agents = m_currentPlayerSelection;
-        for (Agent* agent : m_player1Agents) {
-            agent->setPlayer(Agent::PLAYER1);
+
+        m_player1Agents.clear();
+        for (Agent* agent : m_currentPlayerSelection) {
+            Agent* newAgent = Agent::createAgent(agent->getName(), Agent::PLAYER1);
+            newAgent->loadPixmap();
+            m_player1Agents.append(newAgent);
         }
         clearCurrentPlayerSelection();
         switchPlayer();
     } else {
-        m_player2Agents = m_currentPlayerSelection;
-        for (Agent* agent : m_player2Agents) {
-            agent->setPlayer(Agent::PLAYER2);
+
+        m_player2Agents.clear();
+        for (Agent* agent : m_currentPlayerSelection) {
+            Agent* newAgent = Agent::createAgent(agent->getName(), Agent::PLAYER2);
+            newAgent->loadPixmap();
+            m_player2Agents.append(newAgent);
         }
         emit agentsSelected();
     }
@@ -307,7 +314,7 @@ void AgentSelectScreen::switchPlayer() {
             : "Switch to " + m_player1Name
         );
 
-    // Reset all buttons
+
     for (QAbstractButton* button : m_agentButtonGroup->buttons()) {
         button->setChecked(false);
         button->setEnabled(true);
@@ -316,9 +323,15 @@ void AgentSelectScreen::switchPlayer() {
     // Disable already selected agents
     QList<Agent*> allSelected = m_player1Agents + m_player2Agents;
     for (int i = 0; i < m_allAgents.size(); ++i) {
-        if (allSelected.contains(m_allAgents[i])) {
-            m_agentButtonGroup->button(i)->setEnabled(false);
+        // Check if this agent type is already selected by either player
+        bool alreadySelected = false;
+        for (Agent* selectedAgent : allSelected) {
+            if (selectedAgent->getName() == m_allAgents[i]->getName()) {
+                alreadySelected = true;
+                break;
+            }
         }
+        m_agentButtonGroup->button(i)->setEnabled(!alreadySelected);
     }
 }
 
