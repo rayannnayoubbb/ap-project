@@ -33,6 +33,8 @@ private:
     void createAgentCards();
     void updateSelectionDisplay();
     void clearCurrentPlayerSelection();
+    QString getAgentTypeString(Agent::Type type) const;
+    void updateButtonStyles();
 
     QString m_player1Name;
     QString m_player2Name;
@@ -40,7 +42,7 @@ private:
     QList<Agent*> m_player1Agents;
     QList<Agent*> m_player2Agents;
     QList<Agent*> m_currentPlayerSelection;
-    Agent::Player m_currentSelectingPlayer;  // Fully qualified type name
+    Agent::Player m_currentSelectingPlayer;
 
     // UI Elements
     QGridLayout* m_gridLayout;
@@ -51,6 +53,8 @@ private:
     QPushButton* m_switchPlayerButton;
     QPushButton* m_backButton;
     QScrollArea* m_scrollArea;
+    QWidget* m_container;
+    QLabel* m_backgroundLabel;
 };
 
 #endif // AGENTSELECTSCREEN_H
